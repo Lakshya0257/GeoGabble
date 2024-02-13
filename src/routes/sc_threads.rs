@@ -41,31 +41,37 @@ pub async fn incoming_req(
         // Deserialize the received JSON message into the DTO struct
         let message_dto: LocationDto = serde_json::from_slice(&msg.into_data()).unwrap();
 
+        let update_location_task = tokio::spawn(update_location(
+            client.clone(),
+            message_dto.country.clone(),
+            message_dto.state.clone(),
+            message_dto.user_id.clone(),
+        ));
+        let update_lat_lng_task = tokio::spawn(update_lat_lng(client.clone(), message_dto.clone()));
+        
+        // Check the buffer only if the update_location and update_lat_lng tasks have completed
         if !check_buffer(client.clone(), message_dto.user_id.clone()).await {
-            tokio::spawn(update_location(
-                client.clone(),
-                message_dto.country.clone(),
-                message_dto.state.clone(),
-                message_dto.user_id.clone(),
-            ));
-            tokio::spawn(update_lat_lng(client.clone(), message_dto.clone()));
-        };
+            // Await the completion of both tasks
+            let _ = tokio::try_join!(update_location_task, update_lat_lng_task);
+        }
 
         let connections = get_connected_users(client.clone(), message_dto.user_id.clone()).await;
         println!("{}", connections.len());
 
-        {
-            let data = client.connections.lock().await;
-            println!("Connections: {}", data.len());
-            for con in connections.iter() {
-                let y = data.get(con).cloned();
-                if let Some(valuess) = y {
-                    let val = valuess
-                        .send(Message::Text(message_dto.message.clone()))
-                        .await;
-                    println!("Value sent to other client{:?}", val);
-                };
-            }
-        };
+        if message_dto.message != "".to_string() {
+            {
+                let data = client.connections.lock().await;
+                println!("Connections: {}", data.len());
+                for con in connections.iter() {
+                    let y = data.get(con).cloned();
+                    if let Some(valuess) = y {
+                        let val = valuess
+                            .send(Message::Text(message_dto.message.clone()))
+                            .await;
+                        println!("Value sent to other client{:?}", val);
+                    };
+                }
+            };
+        }
     }
 }

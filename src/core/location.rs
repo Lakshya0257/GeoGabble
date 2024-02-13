@@ -1,8 +1,9 @@
 use crate::models::message_model::LocationDto;
 use crate::utils::app_state::AppState;
+use crate::utils::failovers::retry::Failovers;
 use bb8_redis::{bb8::PooledConnection, RedisConnectionManager};
 use redis::geo::{Coord, RadiusOptions, RadiusOrder, RadiusSearchResult, Unit};
-use redis::AsyncCommands;
+use redis::{AsyncCommands, RedisError};
 use std::collections::{HashMap, HashSet};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 pub async fn get_connected_users(client: AppState, user_id: String) -> HashSet<String> {
@@ -15,6 +16,7 @@ pub async fn get_connected_users(client: AppState, user_id: String) -> HashSet<S
 }
 pub async fn update_location(client: AppState, country: String, state: String, user_id: String) {
     let mut pool: PooledConnection<RedisConnectionManager> = client.redis.get().await.unwrap();
+    // let pool_mut = Arc::new(Mutex::new(pool));
     let val: Result<HashMap<String, String>, redis::RedisError> =
         pool.hgetall(format!("users:{}", user_id)).await;
     match val {
@@ -26,13 +28,24 @@ pub async fn update_location(client: AppState, country: String, state: String, u
                 if value.get("country").unwrap() != &country
                     || value.get("state").unwrap() != &state
                 {
-                    location_changed(
-                        &mut pool,
+                    let failover = Failovers::new();
+                    let client_clone = client.clone();
+                    let id = user_id.clone();
+                    let res = failover.retry(move || location_changed(
+                        client_clone.clone(),
                         value.get("state").unwrap().to_owned(),
                         value.get("country").unwrap().to_owned(),
-                        user_id.clone(),
-                    )
-                    .await;
+                        id.clone(),
+                    ),5,Duration::from_secs(0)).await;
+
+                    println!("{:?}",res);
+                    // location_changed(
+                    //     &mut pool,
+                    //     value.get("state").unwrap().to_owned(),
+                    //     value.get("country").unwrap().to_owned(),
+                    //     user_id.clone(),
+                    // )
+                    // .await;
                     user_add_update(&mut pool, country, state, user_id).await;
                 } else {
                 }
@@ -113,14 +126,16 @@ pub async fn update_lat_lng(client: AppState, message: LocationDto) {
     let ids: Vec<RadiusSearchResult> = pool
         .geo_radius(
             format!("curLoc:{}:{}", message.country, message.state),
-            15.80,
-            37.21,
-            51.39,
+            message.longitude,
+            message.latitude,
+            5.0,
             Unit::Kilometers,
             opts,
         )
         .await
         .unwrap();
+    println!("Nearby users: {:?}", ids.len());
+    let _ : () =pool.del(format!("connected:{}", &message.user_id)).await.unwrap();
 
     for id in ids.iter() {
         if &id.name != &message.user_id {
@@ -133,15 +148,18 @@ pub async fn update_lat_lng(client: AppState, message: LocationDto) {
 }
 
 pub async fn location_changed(
-    pool: &mut PooledConnection<'_, RedisConnectionManager>,
+    client: AppState,
     old_state: String,
     old_country: String,
     user_id: String,
-) {
-    let _: () = pool
+)-> Result<(), RedisError>{
+    let mut pool = client.redis.get().await.unwrap();
+    let y: Result<(), RedisError>= pool
         .zrem(format!("curLoc:{}:{}", old_country, old_state), user_id)
-        .await
-        .unwrap();
+        .await;
+    y
+        // .unwrap();
+    // Ok(());
 }
 
 pub async fn user_add_update(
