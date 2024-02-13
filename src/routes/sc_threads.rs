@@ -39,7 +39,9 @@ pub async fn incoming_req(
         }
 
         // Deserialize the received JSON message into the DTO struct
-        let message_dto: LocationDto = serde_json::from_slice(&msg.into_data()).unwrap();
+        
+        let message_dto: LocationDto = serde_json::from_slice(&msg.clone().into_data()).unwrap();
+        
 
         let update_location_task = tokio::spawn(update_location(
             client.clone(),

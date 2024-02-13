@@ -29,6 +29,6 @@ impl Failovers {
             tokio::time::sleep(retry_delay).await;
         }
 
-        Err(RedisError::from((ErrorKind::ResponseError, "")))
+        Err(RedisError::from((ErrorKind::ResponseError, "Retry Failed")))
     }
 }

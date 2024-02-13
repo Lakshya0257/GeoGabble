@@ -1,3 +1,4 @@
+use crate::core::reset::reset_user;
 use crate::routes::sc_threads::{incoming_req, read_messages};
 use crate::utils::app_state::AppState;
 use axum::extract::ws::Message;
@@ -11,6 +12,7 @@ use axum::{
 };
 use futures_util::stream::StreamExt;
 use serde::Deserialize;
+use tokio::select;
 use tokio::sync::mpsc;
 
 #[derive(Debug, Deserialize)]
@@ -41,6 +43,15 @@ pub async fn handle_socket(sc: WebSocket, client: AppState, user_id: String) {
             .insert(user_id.clone(), user_sender.clone());
         drop(x);
     }
-    tokio::spawn(read_messages(sender, user_receiver));
-    tokio::spawn(incoming_req(receiver, user_sender, client));
+    let read = tokio::spawn(read_messages(sender, user_receiver));
+    let incom = tokio::spawn(incoming_req(receiver, user_sender, client.clone()));
+
+    select! {
+        _ = read => println!("read_task completed"),
+        _ = incom => println!("incom_task completed"),
+    };
+
+    println!("Removing user: {}",user_id.clone());
+
+    reset_user(user_id, client).await;
 }
