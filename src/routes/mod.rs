@@ -10,11 +10,11 @@ mod web_scoket;
 use tower_http::cors::{Any, CorsLayer};
 
 pub async fn create_routes() -> Router {
-    let cors = CorsLayer::new()
-        // allow `GET` and `POST` when accessing the resource
-        .allow_methods([Method::GET, Method::POST])
-        // allow requests from any origin
-        .allow_origin(Any);
+    // let cors = CorsLayer::new()
+    //     // allow `GET` and `POST` when accessing the resource
+    //     .allow_methods([Method::GET, Method::POST])
+    //     // allow requests from any origin
+    //     .allow_origin(Any);
     let r_client = connect().await;
     let app_state_redis = app_state::AppState {
         redis: r_client,
@@ -22,6 +22,6 @@ pub async fn create_routes() -> Router {
     };
     Router::new()
         .route("/location", get(handler))
-        .layer(cors)
+        // .layer(cors)
         .with_state(app_state_redis)
 }
