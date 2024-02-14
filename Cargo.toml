@@ -19,3 +19,6 @@ futures = "0.3.30"
 futures-util = { version = "0.3.30", features = ["sink"] }
 futures-retry = "0.6.0"
 tokio-retry = "0.3.0"
+shuttle-runtime = "0.38.0"
+shuttle-axum = "0.38.0"
+shuttle-secrets = "0.38.0"
