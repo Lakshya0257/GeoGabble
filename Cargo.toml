@@ -19,6 +19,14 @@ futures = "0.3.30"
 futures-util = { version = "0.3.30", features = ["sink"] }
 futures-retry = "0.6.0"
 tokio-retry = "0.3.0"
-shuttle-runtime = "0.38.0"
-shuttle-axum = "0.38.0"
-shuttle-secrets = "0.38.0"
+shuttle-runtime = "0.39.0"
+shuttle-axum = "0.39.0"
+shuttle-secrets = "0.39.0"
+# kafka = "0.10.0"
+# rdkafka = { version = "0.36.2", features = ["cmake-build", "ssl", "sasl", "ssl-vendored"] }
+# sasl2-sys = { version = "0.1.20", features = ["openssl-sys", "openssl-vendored"] }
+# ecies = {version = "0.2", default-features = false, features = ["pure"]}
+# openssl = { version = "0.10.45", features = ["vendored"] }
+# rdkafka = { version = "0.36", features = ["cmake-build"] }
+# rdkafka-sys = "4.7.0"
+

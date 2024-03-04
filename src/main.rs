@@ -1,9 +1,14 @@
 use global_ms::run;
 mod connection;
+mod logging;
+
+use kafka::producer::Record;
+use logging::kafka_consumer::create_producer;
 
 #[shuttle_runtime::main]
 pub async fn axum (
 ) -> shuttle_axum::ShuttleAxum {
+    // kafka_consumer().await;
     // sqlx::migrate!()
     //     .run(&pool)
     //     .await

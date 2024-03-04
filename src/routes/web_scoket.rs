@@ -29,7 +29,7 @@ pub async fn handler(
 }
 
 pub async fn handle_socket(sc: WebSocket, client: AppState, user_id: String) {
-    println!("Connected");
+    println!("User connected: {}",&user_id);
     let (sender, receiver) = sc.split();
 
     let (user_sender, user_receiver): (mpsc::Sender<Message>, mpsc::Receiver<Message>) =
@@ -44,7 +44,7 @@ pub async fn handle_socket(sc: WebSocket, client: AppState, user_id: String) {
         drop(x);
     }
     let read = tokio::spawn(read_messages(sender, user_receiver));
-    let incom = tokio::spawn(incoming_req(receiver, user_sender, client.clone()));
+    let incom = tokio::spawn(incoming_req(receiver, user_sender, client.clone(),user_id.clone()));
 
     select! {
         _ = read => println!("read_task completed"),

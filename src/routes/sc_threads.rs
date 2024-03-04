@@ -13,7 +13,7 @@ pub async fn read_messages(
     mut sc: SplitSink<WebSocket, Message>,
     mut user_receiver: tokio::sync::mpsc::Receiver<Message>,
 ) {
-    println!("Receiver started");
+    // println!("{}: Receiver Started");
 
     while let Some(mg) = user_receiver.recv().await {
         println!("Value received by external client");
@@ -25,8 +25,9 @@ pub async fn incoming_req(
     mut sc: SplitStream<WebSocket>,
     _: tokio::sync::mpsc::Sender<Message>,
     client: AppState,
+    user_id: String
 ) {
-    println!("Sender started");
+    // println!("Sender started");
 
     while let Some(msg) = sc.next().await {
         let msg = match msg {
@@ -34,13 +35,14 @@ pub async fn incoming_req(
             Err(_) => return, // client disconnected
         };
         if let Message::Close(_) = &msg {
-            println!("Client sent close message");
+            println!("{} :Client sent close message",user_id);
             return;
         }
 
         // Deserialize the received JSON message into the DTO struct
         
         let message_dto: LocationDto = serde_json::from_slice(&msg.clone().into_data()).unwrap();
+        println!("{} : Message: {:?}",user_id,message_dto);
         
 
         let update_location_task = tokio::spawn(update_location(

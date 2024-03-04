@@ -6,3 +6,7 @@ enum SocketError {
     UpdateLocationError,
     BufferCheckError,
 }
+
+pub async fn send_error() {
+
+}
